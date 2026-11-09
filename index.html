@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>簡易計算機</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #14151c;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+    }
+    .calculator {
+      width: 100%;
+      max-width: 360px;
+      background: #1e2230;
+      border-radius: 26px;
+      padding: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      transition: max-width 0.2s ease;
+    }
+    
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .logo {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .btn-top {
+      background: #272c3d;
+      color: #edf2f4;
+      border: 1px solid #3d4560;
+      padding: 5px 8px;
+      border-radius: 9px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-top:active { transform: scale(0.95); }
+    .btn-top.active-mode {
+      background: #4f46e5;
+      border-color: #818cf8;
+      color: #fff;
+    }
+    .btn-top.is-muted {
+      background: #7f1d1d;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    /* 使用說明面板 */
+    .help-box {
+      display: none;
+      background: #151824;
+      border: 1px solid #3d4560;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .help-box.show { display: block; }
+    .help-box h4 {
+      color: #f39c12;
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+    }
+    .help-box ul {
+      padding-left: 18px;
+      margin-bottom: 6px;
+    }
+    .help-box kbd {
+      background: #2b3147;
+      color: #60a5fa;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      font-family: monospace;
+    }
+
+    /* 控制面板區塊 */
+    .control-panel {
+      background: #151824;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+    }
+    .select-input {
+      flex: 1;
+      min-width: 0;
+      background: #272c3d;
+      color: #e2e8f0;
+      border: 1px solid #3d4560;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .ctrl-btn {
+      background: #2c3348;
+      color: #cbd5e1;
+      border: 1px solid #3d4560;
+      padding: 7px 0;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .ctrl-btn:hover { background: #39425d; }
+    .ctrl-btn:active { transform: scale(0.95); }
+    .ctrl-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .ctrl-btn.rec-active {
+      background: #dc2626;
+      color: white;
+      border-color: #ef4444;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    /* 螢幕 */
+    .screen-container {
+      background: #0d0f17;
+      border-radius: 16px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.7);
+    }
+    .status-display {
+      font-size: 0.75rem;
+      color: #38bdf8;
+      min-height: 18px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+      font-family: monospace;
+    }
+    .calc-screen {
+      color: #ffffff;
+      font-size: 1.85rem;
+      text-align: right;
+      overflow-x: auto;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      word-break: break-all;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: bold;
+    }
+
+    /* 進階運算面板 (可展開/收合) */
+    .scientific-grid {
+      display: none;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-bottom: 8px;
+      background: #171a26;
+      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .scientific-grid.show {
+      display: grid;
+    }
+    button.sci-key {
+      height: 42px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: #2f364d;
+      color: #a5b4fc;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.08s, transform 0.05s;
+    }
+    button.sci-key:active, button.sci-key.robot-press {
+      transform: translateY(2px);
+      background: #4f46e5 !important;
+      color: #fff !important;
+    }
+
+    /* 基礎按鍵盤 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    button.calc-key {
+      position: relative;
+      height: 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 14px;
+      background: #2b3147;
+      color: #f1f5f9;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.08s, transform 0.05s, box-shadow 0.08s;
+      box-shadow: 0 3px 0 #1b1f2e;
+    }
+    button.calc-key:active, button.calc-key.robot-press {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 #1b1f2e;
+      background: #3b82f6 !important;
+      color: #fff !important;
+    }
+    .key-char {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .note-hint {
+      font-size: 0.62rem;
+      color: #94a3b8;
+      margin-top: 3px;
+      font-family: monospace;
+    }
+
+    /* 功能按鍵顏色 */
+    .btn-op { background: #d97706; }
+    .btn-op .note-hint { color: #fde68a; }
+    .btn-op:active, .btn-op.robot-press { background: #f59e0b !important; }
+
+    .btn-eq { background: #059669; grid-column: span 2; }
+    .btn-eq .note-hint { color: #a7f3d0; }
+    .btn-eq:active, .btn-eq.robot-press { background: #10b981 !important; }
+
+    .btn-ac { background: #dc2626; }
+    .btn-ac .note-hint { color: #fecaca; }
+    .btn-ac:active, .btn-ac.robot-press { background: #ef4444 !important; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="calculator">
+  <!-- 頂部標題與工具按鈕 -->
+  <div class="top-row">
+    <div class="logo">
+      <span>簡易計算機</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-top" id="sciToggleBtn" onclick="toggleScientific()">
+        <span>📐</span>
+        <span id="sciToggleText">進階運算</span>
+      </button>
+      <button class="btn-top" id="muteBtn" onclick="toggleMute()">
+        <span id="muteIcon">🔊</span>
+      </button>
+      <button class="btn-top" onclick="toggleHelp()">
+        <span>📖</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 可收合的使用說明面板 -->
+  <div class="help-box" id="helpBox">
+    <h4>🎹 鍵盤與進階運算操作</h4>
+    <ul>
+      <li>基礎計算：<kbd>0</kbd>~<kbd>9</kbd>、<kbd>+</kbd>、<kbd>-</kbd>、<kbd>*</kbd>、<kbd>/</kbd>、<kbd>.</kbd></li>
+      <li><strong>進階函數</strong>：支援次方 <kbd>^</kbd>、開根號 <kbd>√</kbd>、括號 <kbd>(</kbd> <kbd>)</kbd>、三角函數（以角度計算）</li>
+      <li><strong>00 鍵用法</strong>：快速連按兩下 <kbd>0</kbd>，或直接按字母 <kbd>o</kbd> / <kbd>z</kbd></li>
+      <li>計算與清除：<kbd>Enter</kbd> 或 <kbd>=</kbd> 計算、<kbd>Backspace</kbd> 刪除、<kbd>Esc</kbd> 歸零</li>
+    </ul>
+    <h4>🎙️ 錄音與分享</h4>
+    <ul>
+      <li>按「● 錄音」開始記錄彈奏，按「■ 停止」後即可「▶ 重播」或產生分享連結。</li>
+    </ul>
+  </div>
+
+  <!-- 多功能控制列 -->
+  <div class="control-panel">
+    <div class="control-row">
+      <select class="select-input" id="instrumentSelect" onchange="changeInstrument(this.value)">
+        <option value="calculator">🎵 復古計算機 (Triangle)</option>
+        <option value="8bit">👾 8-bit 紅白機 (Square)</option>
+        <option value="piano">🎹 經典鋼琴 (Piano)</option>
+        <option value="cat">🐱 萌寵貓叫 (Meow)</option>
+      </select>
+    </div>
+
+    <div class="btn-group">
+      <button class="ctrl-btn" id="recBtn" onclick="toggleRecord()">● 錄音</button>
+      <button class="ctrl-btn" id="playRecBtn" onclick="playMyRecording()" disabled>▶ 重播</button>
+      <button class="ctrl-btn" id="shareBtn" onclick="copyShareLink()">🔗 分享</button>
+    </div>
+  </div>
+
+  <!-- 螢幕區 -->
+  <div class="screen-container">
+    <div class="status-display" id="statusDisplay">Ready to Play</div>
+    <div class="calc-screen" id="screen">0</div>
+  </div>
+
+  <!-- 進階科學運算按鍵列 (可收合/展開) -->
+  <div class="scientific-grid" id="scientificGrid">
+    <button class="sci-key" data-key="(" onclick="handleKeyClick('(')">(</button>
+    <button class="sci-key" data-key=")" onclick="handleKeyClick(')')">)</button>
+    <button class="sci-key" data-key="^" onclick="handleKeyClick('^')">x^y</button>
+    <button class="sci-key" data-key="√" onclick="handleKeyClick('√(')">√</button>
+
+    <button class="sci-key" data-key="sin" onclick="handleKeyClick('sin(')">sin</button>
+    <button class="sci-key" data-key="cos" onclick="handleKeyClick('cos(')">cos</button>
+    <button class="sci-key" data-key="tan" onclick="handleKeyClick('tan(')">tan</button>
+    <button class="sci-key" data-key="%" onclick="handleKeyClick('%')">%</button>
+
+    <button class="sci-key" data-key="ln" onclick="handleKeyClick('ln(')">ln</button>
+    <button class="sci-key" data-key="π" onclick="handleKeyClick('π')">π</button>
+    <button class="sci-key" data-key="e" onclick="handleKeyClick('e')">e</button>
+    <button class="sci-key" data-key="+/-" onclick="toggleSign()">+/-</button>
+  </div>
+
+  <!-- 基礎按鍵盤 -->
+  <div class="grid">
+    <button class="calc-key btn-ac" data-key="Escape" onclick="handleKeyClick('AC')">
+      <span class="key-char">AC</span>
+      <span class="note-hint">RESET</span>
+    </button>
+    <button class="calc-key" data-key="Backspace" onclick="handleKeyClick('DEL')">
+      <span class="key-char">DEL</span>
+      <span class="note-hint">高Mi (3̇)</span>
+    </button>
+    <button class="calc-key btn-op" data-key="/" onclick="handleKeyClick('/')">
+      <span class="key-char">÷</span>
+      <span class="note-hint">高Re (2̇)</span>
+    </button>
+    <button class="calc-key btn-op" data-key="*" onclick="handleKeyClick('*')">
+      <span class="key-char">×</span>
+      <span class="note-hint">高Do (1̇)</span>
+    </button>
+
+    <button class="calc-key" data-key="7" onclick="handleKeyClick('7')">
+      <span class="key-char">7</span>
+      <span class="note-hint">Fa (4)</span>
+    </button>
+    <button class="calc-key" data-key="8" onclick="handleKeyClick('8')">
+      <span class="key-char">8</span>
+      <span class="note-hint">Sol (5)</span>
+    </button>
+    <button class="calc-key" data-key="9" onclick="handleKeyClick('9')">
+      <span class="key-char">9</span>
+      <span class="note-hint">La (6)</span>
+    </button>
+    <button class="calc-key btn-op" data-key="-" onclick="handleKeyClick('-')">
+      <span class="key-char">-</span>
+      <span class="note-hint">Si (7)</span>
+    </button>
+
+    <button class="calc-key" data-key="4" onclick="handleKeyClick('4')">
+      <span class="key-char">4</span>
+      <span class="note-hint">Do (1)</span>
+    </button>
+    <button class="calc-key" data-key="5" onclick="handleKeyClick('5')">
+      <span class="key-char">5</span>
+      <span class="note-hint">Re (2)</span>
+    </button>
+    <button class="calc-key" data-key="6" onclick="handleKeyClick('6')">
+      <span class="key-char">6</span>
+      <span class="note-hint">Mi (3)</span>
+    </button>
+    <button class="calc-key btn-op" data-key="+" onclick="handleKeyClick('+')">
+      <span class="key-char">+</span>
+      <span class="note-hint">Fa (4)</span>
+    </button>
+
+    <button class="calc-key" data-key="1" onclick="handleKeyClick('1')">
+      <span class="key-char">1</span>
+      <span class="note-hint">低Sol (5̣)</span>
+    </button>
+    <button class="calc-key" data-key="2" onclick="handleKeyClick('2')">
+      <span class="key-char">2</span>
+      <span class="note-hint">低La (6̣)</span>
+    </button>
+    <button class="calc-key" data-key="3" onclick="handleKeyClick('3')">
+      <span class="key-char">3</span>
+      <span class="note-hint">低Si (7̣)</span>
+    </button>
+    <button class="calc-key" data-key="." onclick="handleKeyClick('.')">
+      <span class="key-char">.</span>
+      <span class="note-hint">低Fa (4̣)</span>
+    </button>
+
+    <button class="calc-key" data-key="0" onclick="handleKeyClick('0')">
+      <span class="key-char">0</span>
+      <span class="note-hint">低Do (1̣)</span>
+    </button>
+    <button class="calc-key" data-key="00" onclick="handleKeyClick('00')">
+      <span class="key-char">00</span>
+      <span class="note-hint">低Mi (3̣)</span>
+    </button>
+    <button class="calc-key btn-eq" data-key="=" onclick="handleKeyClick('=')">
+      <span class="key-char">=</span>
+      <span class="note-hint">超高Sol (5̇)</span>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let expr = '0';
+  let isMuted = false;
+  let currentInstrument = 'calculator';
+  const screen = document.getElementById('screen');
+  const statusDisplay = document.getElementById('statusDisplay');
+  const helpBox = document.getElementById('helpBox');
+  const sciGrid = document.getElementById('scientificGrid');
+
+  // 音高頻率對照表 (含進階鍵)
+  const NOTE_FREQS = {
+    '0': 130.81,   '00': 164.81,  '.': 174.61,   '1': 196.00,   '2': 220.00,
+    '3': 246.94,   '4': 261.63,   '5': 293.66,   '6': 329.63,   '7': 349.23,
+    '+': 349.23,   '8': 392.00,   '9': 440.00,   '-': 493.88,   '*': 523.25,
+    '/': 587.33,   'DEL': 659.25, '=': 783.99,
+    '(': 311.13,   ')': 369.99,   '^': 415.30,   '√(': 466.16,
+    'sin(': 554.37,'cos(': 622.25,'tan(': 698.46,'%': 739.99,
+    'ln(': 830.61, 'π': 880.00,   'e': 932.33,   '+/-': 277.18
+  };
+
+  // Web Audio 引擎
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function toggleScientific() {
+    sciGrid.classList.toggle('show');
+    const isShow = sciGrid.classList.contains('show');
+    const btn = document.getElementById('sciToggleBtn');
+    if (isShow) {
+      btn.classList.add('active-mode');
+      showToast('📐 已展開進階運算功能');
+    } else {
+      btn.classList.remove('active-mode');
+    }
+  }
+
+  function toggleMute() {
+    isMuted = !isMuted;
+    const btn = document.getElementById('muteBtn');
+    const icon = document.getElementById('muteIcon');
+    if (isMuted) {
+      icon.innerText = '🔇';
+      btn.classList.add('is-muted');
+      showToast('🔇 已開啟靜音模式');
+    } else {
+      icon.innerText = '🔊';
+      btn.classList.remove('is-muted');
+      initAudio();
+      showToast('🔊 已開啟聲音');
+    }
+  }
+
+  function toggleHelp() {
+    helpBox.classList.toggle('show');
+  }
+
+  function playSynth(freq, duration = 0.18) {
+    if (isMuted || !freq) return;
+    initAudio();
+
+    const t = audioCtx.currentTime;
+
+    if (currentInstrument === 'calculator') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration);
+
+    } else if (currentInstrument === '8bit') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.16, t);
+      gain.gain.setValueAtTime(0.16, t + duration * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration);
+
+    } else if (currentInstrument === 'piano') {
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(freq, t);
+      osc2.frequency.setValueAtTime(freq * 2, t);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.35, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration * 1.8);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + duration * 1.8);
+      osc2.stop(t + duration * 1.8);
+
+    } else if (currentInstrument === 'cat') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq * 0.85, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.25, t + 0.06);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.95, t + duration * 1.4);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.2, t + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration * 1.4);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, t);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration * 1.4);
+    }
+  }
+
+  function changeInstrument(val) {
+    currentInstrument = val;
+    showToast(`音色已切換：${document.getElementById('instrumentSelect').selectedOptions[0].text}`);
+  }
+
+  // ---------------- 錄音與分享 ----------------
+  let isRecording = false;
+  let recordStartTime = 0;
+  let recordedNotes = [];
+
+  function toggleRecord() {
+    const recBtn = document.getElementById('recBtn');
+    if (!isRecording) {
+      isRecording = true;
+      recordedNotes = [];
+      recordStartTime = performance.now();
+      recBtn.innerText = '■ 停止';
+      recBtn.classList.add('rec-active');
+      statusDisplay.innerText = '🔴 錄音中...請在按鍵上演奏';
+      document.getElementById('playRecBtn').disabled = true;
+    } else {
+      isRecording = false;
+      recBtn.innerText = '● 錄音';
+      recBtn.classList.remove('rec-active');
+      statusDisplay.innerText = `錄音完成！共 ${recordedNotes.length} 個音符`;
+      if (recordedNotes.length > 0) {
+        document.getElementById('playRecBtn').disabled = false;
+      }
+    }
+  }
+
+  function playMyRecording() {
+    if (recordedNotes.length === 0) return;
+    statusDisplay.innerText = '▶ 正在回放你的演奏...';
+    let idx = 0;
+    function next() {
+      if (idx >= recordedNotes.length) {
+        statusDisplay.innerText = '回放完成！';
+        return;
+      }
+      const item = recordedNotes[idx];
+      executeKey(item.key, true, 0.2);
+      idx++;
+      if (idx < recordedNotes.length) {
+        const nextDelay = recordedNotes[idx].time - item.time;
+        setTimeout(next, Math.max(40, nextDelay));
+      }
+    }
+    next();
+  }
+
+  function copyShareLink() {
+    if (recordedNotes.length === 0) {
+      showToast('請先按「● 錄音」彈奏一段旋律再分享！');
+      return;
+    }
+    let compressed = [];
+    for (let i = 0; i < recordedNotes.length; i++) {
+      const delta = i === 0 ? 0 : Math.round(recordedNotes[i].time - recordedNotes[i-1].time);
+      compressed.push(`${recordedNotes[i].key}_${delta}`);
+    }
+    const hashData = encodeURIComponent(compressed.join(','));
+    const shareUrl = `${window.location.origin}${window.location.pathname}#play=${hashData}`;
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast('🎉 演奏連結已複製！傳給朋友點開即可聽');
+    }).catch(() => {
+      prompt('請手動複製分享連結：', shareUrl);
+    });
+  }
+
+  function checkUrlHash() {
+    if (window.location.hash.startsWith('#play=')) {
+      try {
+        const raw = decodeURIComponent(window.location.hash.replace('#play=', ''));
+        const tokens = raw.split(',');
+        let accTime = 0;
+        recordedNotes = tokens.map(t => {
+          const [key, delta] = t.split('_');
+          accTime += parseInt(delta, 10);
+          return { key, time: accTime };
+        });
+        document.getElementById('playRecBtn').disabled = false;
+        showToast('🎵 成功載入分享的演奏！即將為您播放...');
+        setTimeout(playMyRecording, 800);
+      } catch (e) {
+        console.error("Hash parse failed", e);
+      }
+    }
+  }
+
+  // ---------------- 計算機與按鈕點擊分流 ----------------
+  function handleKeyClick(key) {
+    executeKey(key, false, 0.18);
+  }
+
+  function toggleSign() {
+    initAudio();
+    if (NOTE_FREQS['+/-']) playSynth(NOTE_FREQS['+/-'], 0.18);
+    if (expr === '0' || expr === '錯誤') return;
+    if (expr.startsWith('-(') && expr.endsWith(')')) {
+      expr = expr.slice(2, -1);
+    } else if (expr.startsWith('-')) {
+      expr = expr.slice(1);
+    } else {
+      expr = `-(${expr})`;
+    }
+    update();
+  }
+
+  function executeKey(key, isRobot = false, customDuration = 0.18) {
+    initAudio();
+
+    // 觸發對應按鈕下沉動畫
+    const targetBtn = document.querySelector(`button[data-key="${key}"]`);
+    if (targetBtn) {
+      targetBtn.classList.add('robot-press');
+      setTimeout(() => targetBtn.classList.remove('robot-press'), 120);
+    }
+
+    if (key === 'AC') {
+      if (!isMuted) {
+        [261.63, 329.63, 392.00, 523.25].forEach((f, idx) => {
+          setTimeout(() => playSynth(f, 0.1), idx * 35);
+        });
+      }
+      clearAll();
+    } else {
+      if (NOTE_FREQS[key]) {
+        playSynth(NOTE_FREQS[key], customDuration);
+      }
+      if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '.', '(', ')', '^', '√(', 'sin(', 'cos(', 'tan(', '%', 'ln(', 'π', 'e'].includes(key)) {
+        appendToken(key);
+      } else if (['+', '-', '*', '/'].includes(key)) {
+        appendOp(key);
+      } else if (key === '=') {
+        calculate();
+      } else if (key === 'DEL') {
+        deleteLast();
+      }
+    }
+
+    if (isRecording && !isRobot) {
+      recordedNotes.push({
+        key: key,
+        time: performance.now() - recordStartTime
+      });
+    }
+  }
+
+  function update() {
+    screen.innerText = expr.replace(/\*/g, '×').replace(/\//g, '÷');
+  }
+
+  function appendToken(token) {
+    if (expr === '0' && !['.', ')', '%', '+', '-', '*', '/', '^'].includes(token)) {
+      expr = token;
+    } else {
+      expr += token;
+    }
+    update();
+  }
+
+  function appendOp(op) {
+    if (['+', '-', '*', '/', '^'].includes(expr.slice(-1))) {
+      expr = expr.slice(0, -1);
+    }
+    expr += op;
+    update();
+  }
+
+  function clearAll() {
+    expr = '0';
+    update();
+  }
+
+  function deleteLast() {
+    // 若刪除的是如 "sin(" 等多字元函數，整段回退
+    const multiTokens = ['sin(', 'cos(', 'tan(', 'ln(', '√(', '00'];
+    let removed = false;
+    for (let t of multiTokens) {
+      if (expr.endsWith(t)) {
+        expr = expr.slice(0, -t.length);
+        removed = true;
+        break;
+      }
+    }
+    if (!removed) {
+      expr = expr.slice(0, -1);
+    }
+    if (expr === '') expr = '0';
+    update();
+  }
+
+  // 進階數學算式轉換與計算核心
+  function calculate() {
+    try {
+      let cleanExpr = expr;
+
+      // 移除末尾懸空的運算子
+      while (['+', '-', '*', '/', '^'].includes(cleanExpr.slice(-1))) {
+        cleanExpr = cleanExpr.slice(0, -1);
+      }
+
+      // 自動補齊未閉合的括號
+      const openCount = (cleanExpr.match(/\(/g) || []).length;
+      const closeCount = (cleanExpr.match(/\)/g) || []).length;
+      if (openCount > closeCount) {
+        cleanExpr += ')'.repeat(openCount - closeCount);
+      }
+
+      // 語法轉換映射
+      let evalExpr = cleanExpr
+        .replace(/π/g, 'Math.PI')
+        .replace(/\be\b/g, 'Math.E')
+        .replace(/√\(/g, 'Math.sqrt(')
+        .replace(/ln\(/g, 'Math.log(')
+        // 三角函數：轉成徑度運算 (角度 * PI / 180)
+        .replace(/sin\(([^)]+)\)/g, 'Math.sin(($1) * Math.PI / 180)')
+        .replace(/cos\(([^)]+)\)/g, 'Math.cos(($1) * Math.PI / 180)')
+        .replace(/tan\(([^)]+)\)/g, 'Math.tan(($1) * Math.PI / 180)')
+        // 次方與百分比
+        .replace(/\^/g, '**')
+        .replace(/%/g, '* 0.01');
+
+      const result = new Function(`return ${evalExpr}`)();
+      if (!isFinite(result) || isNaN(result)) {
+        expr = '錯誤';
+      } else {
+        // 浮點精度過濾
+        expr = String(Math.round(result * 1e10) / 1e10);
+      }
+    } catch (err) {
+      expr = '錯誤';
+    }
+    update();
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // ---------------- 鍵盤事件 ----------------
+  let lastZeroTime = 0;
+  const DOUBLE_ZERO_INTERVAL = 250;
+
+  window.addEventListener('keydown', (e) => {
+    let key = e.key;
+
+    if (key.toLowerCase() === 'o' || key.toLowerCase() === 'z') {
+      e.preventDefault();
+      executeKey('00', false, 0.18);
+      return;
+    }
+
+    if (key === '0') {
+      e.preventDefault();
+      const now = performance.now();
+      if (now - lastZeroTime < DOUBLE_ZERO_INTERVAL) {
+        deleteLast();
+        executeKey('00', false, 0.18);
+        lastZeroTime = 0;
+      } else {
+        lastZeroTime = now;
+        executeKey('0', false, 0.18);
+      }
+      return;
+    } else {
+      lastZeroTime = 0;
+    }
+
+    if (key === 'Enter') key = '=';
+    if (key === 'Escape') key = 'AC';
+    if (key === 'Backspace') key = 'DEL';
+
+    const validKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '+', '-', '*', '/', '=', 'AC', 'DEL', '(', ')', '^', '%'];
+    if (validKeys.includes(key)) {
+      e.preventDefault();
+      executeKey(key, false, 0.18);
+    }
+  });
+
+  window.addEventListener('load', checkUrlHash);
+</script>
+
+</body>
+</html>
